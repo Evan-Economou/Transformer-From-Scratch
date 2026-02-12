@@ -1,6 +1,6 @@
 # Transformer-From-Scratch
 
-We implemented a Transformer Neural Network from scratch and trained it on gutenberg book data
+Implementation of Transformer Neural Network architecture; implementation of training loop; Trained and tested on book data pulled from Gutenberg
 
 ### Authors:
 - **Evan Economou**
