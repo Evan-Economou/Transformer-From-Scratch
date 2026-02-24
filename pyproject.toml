@@ -1,9 +1,11 @@
 [project]
-name = "decoding-gpt"
-version = "0.0.4"
-description = "course materials for CSM AMS course 'Decoding GPT'"
+name = "Transformer"
+version = "0.0.1"
+description = "Transformer based language model built from scratch"
 authors = [
-	{ name = "Michael Ivanitskiy", email = "mivanits@mines.edu" },
+	{ name = "Evan Economou", email = "eteconomou@gmail.com" },
+	{ name = "Joe Huston", email = "josephhuston47@Outlook.com"},
+	{ name = "Nathan Hoehndorf", email = "hoehndorf.nathan@gmail.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
@@ -51,12 +53,6 @@ lint = [
 
 [tool.uv]
 default-groups = ["dev", "lint"]
-
-[project.urls]
-Homepage = "https://github.com/mines-opt-ml/decoding-gpt"
-Documentation = "https://github.com/mines-opt-ml/decoding-gpt"
-Repository = "https://github.com/mines-opt-ml/decoding-gpt"
-Issues = "https://github.com/mines-opt-ml/decoding-gpt/issues"
 
 # ruff config
 [tool.ruff]
