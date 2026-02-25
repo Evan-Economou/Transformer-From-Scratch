@@ -6,6 +6,7 @@ import torch.nn as nn
 from jaxtyping import Float, Int
 import requests
 import unicodedata
+import configparser
 from collections import Counter
 
 
@@ -303,13 +304,29 @@ def train_model(
         print(f'Loss for epoch {epoch}: {loss.item():.4f}')
 
 
+def load_config(config_path: Path|str) -> Config:
+    config_parser = configparser.ConfigParser()
+    config_parser.read(config_path)
+
+    #load model information
+    d_model = config_parser.getint('MODEL', 'd_model')
+    d_hidden = config_parser.getint('MODEL', 'd_hidden')
+
+    #load data information and create tokenizer parsing it
+    tokenizer_data_path = config_parser.get('DATA', 'tokenizer_data_path')
+    with open(tokenizer_data_path, 'r', encoding='utf-8') as file:
+        tokenizer_data = file.read()
+    tokenizer = Tokenizer(raw_data=tokenizer_data[0:10000])
+
+    return Config(d_model=d_model, d_vocab=tokenizer.vocab_size, d_hidden=d_hidden, tokenizer=tokenizer)
+
 def main():
     decision = input("Do you want to train a new model? (y/n): ")
     if decision.lower() == 'n': #assume a model file exists and try to load it
         while True:
             try:
-                model_path = input("Enter the path to the saved model: ")
-                model = torch.load(model_path)
+                model_path = input("Enter the path to the saved model: ") or "./transformer_model.pt"
+                model = torch.load(model_path, weights_only=False)
                 print("Model loaded successfully.")
                 break
             except Exception as e:
@@ -319,16 +336,16 @@ def main():
             try:
                 input_str = input("Enter a string to generate output (or 'exit' to quit): ")
                 if input_str.lower() == 'exit':
-                    print("Exiting the program.")
                     break
                 output = model.generate_output(input_str)
                 print(f"Generated output: {output}")
             except Exception as e:
                 print(f"Error generating output: {e}. Please try again.")
-    elif (decision.lower() == 'y'): #user wants to load data and train a new model
-        raw_data = get_gutenberg_book()[0:10000]
-        tokenizer = Tokenizer(raw_data)
-        config = Config(d_model=16, d_vocab=tokenizer.vocab_size, d_hidden=64,tokenizer=tokenizer)
+    elif decision.lower() == 'y': #user wants to load data and train a new model
+        config_path = input("Enter the path to the config file (press enter for ./config.ini): ") or "./config.ini"
+        config = load_config(config_path)
+        # Train on the same data used to build the tokenizer vocabulary
+        raw_data = config.tokenizer.raw_data[0:10000]
         model = Transformer(num_blocks=2, config=config)
         train_model(model, raw_data, epochs = 50)
         torch.save(model, "transformer_model.pt")
