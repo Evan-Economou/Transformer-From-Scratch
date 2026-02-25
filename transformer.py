@@ -155,7 +155,7 @@ class Tokenizer():
     #should turn string of words into numbers
     def encode(self, data: str) -> Int[torch.Tensor, "n_context"]:
         data = self.process_raw_data(data).split(' ')
-        return torch.tensor([self.vocab[word] for word in data],dtype=torch.int)
+        return torch.tensor([self.vocab[word] for word in data], dtype=torch.long)
     
     #should turn numbers into a string of words
     def decode(self, tokens: Int[torch.Tensor, "n_context"]) -> str:
@@ -226,7 +226,7 @@ class Transformer(torch.nn.Module):
         self.softmax = nn.Softmax(dim=-1)
         
 
-    def forward(self, x: Int[torch.Tensor, "n_context"]) -> Float[torch.Tensor, "vocab n_context"]:
+    def forward(self, x: Int[torch.Tensor, "n_context"]) -> Float[torch.Tensor, "n_context d_vocab"]:
         x_onehot = torch.zeros(x.shape[0], self.config.d_vocab)
         for i, token in enumerate(x):
             x_onehot[i, token] = 1.0
@@ -235,7 +235,7 @@ class Transformer(torch.nn.Module):
         for block in self.blocks:
             x = block.forward(x)
         x = (x @ self.embedding.weight)
-        return self.softmax(x)
+        return x
     
     def generate_output(self, x:str, n_tokens: int = 10) -> str:
         output_str = ""
@@ -288,18 +288,19 @@ def train_model(
     optimizer: torch.optim.SGD = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
     
     training_data = model.config.tokenizer.encode(raw_data)
-    true_values = torch.zeros(training_data.shape[0], model.config.d_vocab)
-    for i, token in enumerate(training_data):
-            true_values[i, token.item()] = 1.0
+    # CrossEntropyLoss expects integer class indices, not one-hot vectors
     n = training_data.shape[0]
-    true_values = true_values[1:n,:]
+    true_values = training_data[1:n]  # Next token predictions
+    
     for epoch in range(epochs):
         outputs = model(training_data)
-        loss=loss_fn(outputs[0:n-1,:],true_values)
+        # outputs shape: (n_context, d_vocab)
+        # true_values shape: (n_context-1,) with integer class indices
+        loss = loss_fn(outputs[0:n-1, :], true_values)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        print(f'Loss for epoch {epoch}: {loss}')
+        print(f'Loss for epoch {epoch}: {loss.item():.4f}')
 
 
 def main():
@@ -325,11 +326,11 @@ def main():
             except Exception as e:
                 print(f"Error generating output: {e}. Please try again.")
     elif (decision.lower() == 'y'): #user wants to load data and train a new model
-        raw_data = get_gutenberg_book()
+        raw_data = get_gutenberg_book()[0:10000]
         tokenizer = Tokenizer(raw_data)
         config = Config(d_model=16, d_vocab=tokenizer.vocab_size, d_hidden=64,tokenizer=tokenizer)
         model = Transformer(num_blocks=2, config=config)
-        train_model(model, raw_data)
+        train_model(model, raw_data, epochs = 50)
         torch.save(model, "transformer_model.pt")
     else: #this is the case where I am just messing around and making sure the model works
         prompt = input("Running input through an untrained model, enter prompt: ")
