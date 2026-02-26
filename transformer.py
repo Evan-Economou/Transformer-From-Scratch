@@ -8,6 +8,7 @@ import requests
 import unicodedata
 import configparser
 from collections import Counter
+import matplotlib.pyplot as plt
 
 
 # %% [markdown]
@@ -286,26 +287,56 @@ def train_model(
     raw_data: str,
     loss_fn: torch.nn.CrossEntropyLoss = nn.CrossEntropyLoss(),
     lr: Float = 1e-3,
-    epochs: Int = 1
+    epochs: Int = 1,
+    batch_size: Int = None
     ):
     optimizer: torch.optim.SGD = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
     
     training_data = model.config.tokenizer.encode(raw_data)
     n = training_data.shape[0]
-    true_values = training_data[1:n] 
+    loss_history = []
     
-    for epoch in range(epochs):
-        outputs = model(training_data)
-        # outputs shape: (n_context, d_vocab)
-        # true_values shape: (n_context-1,) with integer class indices
-        loss = loss_fn(outputs[0:n-1, :], true_values)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        print(f'Loss for epoch {epoch}: {loss.item():.4f}')
+    if batch_size is None: # if no batch size is provided, just use all the data
+        true_values = training_data[1:n]
+        
+        for epoch in range(epochs):
+            outputs = model(training_data)
+            loss = loss_fn(outputs[0:n-1, :], true_values)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            loss_val = loss.item()
+            loss_history.append(loss_val)
+            print(f'Loss for epoch {epoch}: {loss_val:.4f}')
+    
+    else: # otherwise break the data into batches with size batch_size
+        for epoch in range(epochs):
+            epoch_loss = 0.0
+            n_batches = 0
+            
+            for i in range(0, n - batch_size, batch_size):
+                batch_tokens = training_data[i:i+batch_size]
+                targets = training_data[i+1:i+batch_size+1]
+                
+                outputs = model(batch_tokens)
+                loss = loss_fn(outputs[:-1, :], targets[:-1])
+                print(f"Epoch {epoch}, Batch {n_batches}: Loss = {loss.item():.4f}")
+
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                
+                epoch_loss += loss.item()
+                n_batches += 1
+            
+            avg_loss = epoch_loss / n_batches if n_batches > 0 else 0
+            loss_history.append(avg_loss)
+            print(f'Epoch {epoch}: Average Loss = {avg_loss:.4f}')
+    
+    return loss_history
 
 
-def load_config(config_path: Path|str) -> Config:
+def load_config(config_path: Path|str) -> tuple[int, int, Config]:
     config_parser = configparser.ConfigParser()
     config_parser.read(config_path)
 
@@ -319,15 +350,26 @@ def load_config(config_path: Path|str) -> Config:
         tokenizer_data = file.read()
     tokenizer = Tokenizer(raw_data=tokenizer_data)
 
-    return Config(d_model=d_model, d_vocab=tokenizer.vocab_size, d_hidden=d_hidden, tokenizer=tokenizer)
+    #load training information
+    epochs = config_parser.getint('TRAINING', 'epochs')
+    batch_size = config_parser.getint('TRAINING', 'batch_size')
+
+    return epochs, batch_size, Config(d_model=d_model, d_vocab=tokenizer.vocab_size, d_hidden=d_hidden, tokenizer=tokenizer)
 
 
-def batch_train(raw_data, model, epochs):
-    for i in range(0,len(model.config.tokenizer.tokenized_text),10000):
-        print(f"Training on tokens {i} to {i+10000}")
-        train_data = model.config.tokenizer.tokenized_text[i:i+10000]
-        train_model(model, ' '.join(train_data), epochs=epochs)
-        torch.save(model, "transformer_model.pt")
+def plot_loss(loss_history: list[float], save_path: str = "loss_plot.png"):
+    """Plot training loss over epochs and save to file"""
+    plt.figure(figsize=(10, 6))
+    plt.plot(range(len(loss_history)), loss_history, 'b-', linewidth=2)
+    plt.xlabel('Epoch', fontsize=12)
+    plt.ylabel('Loss', fontsize=12)
+    plt.title('Training Loss over Epochs', fontsize=14, fontweight='bold')
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    print(f"Loss plot saved to {save_path}")
+    plt.show()
+
 
 def main():
     decision = input("Do you want to train a new model? (y/n): ")
@@ -352,12 +394,15 @@ def main():
                 print(f"Error generating output: {e}. Please try again.")
     elif decision.lower() == 'y': #user wants to load data and train a new model
         config_path = input("Enter the path to the config file (press enter for ./config.ini): ") or "./config.ini"
-        config = load_config(config_path)
+        epochs, batch_size, config = load_config(config_path)
         # Train on the same data used to build the tokenizer vocabulary
         raw_data = config.tokenizer.raw_data
-        print(len(raw_data))
+        print(f"Training on {len(raw_data)} characters")
         model = Transformer(num_blocks=2, config=config)
-        batch_train(raw_data,model,50)
+        loss_history = train_model(model, raw_data, epochs=epochs, batch_size=batch_size)
+        torch.save(model, "transformer_model.pt")
+        print("Model saved to transformer_model.pt")
+        plot_loss(loss_history)
     else: #this is the case where I am just messing around and making sure the model works
         prompt = input("Running input through an untrained model, enter prompt: ")
         tokenizer = Tokenizer(raw_data="Aaaah Im Tokenizing It")
