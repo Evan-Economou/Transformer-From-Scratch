@@ -70,9 +70,9 @@ class Tokenizer():
         """! @brief Initializes the Tokenizer with raw text data, processing and tokenizing it, and builds the vocabulary
         @param raw_data The raw text data to be tokenized and used for building the vocabulary"""
         self.raw_data = raw_data 
-        tokenized_text = self.process_raw_data(raw_data).split(' ')
+        self.tokenized_text = self.process_raw_data(raw_data).split(' ')
 
-        vocab_counts: Counter[str] = Counter(tokenized_text).most_common()
+        vocab_counts: Counter[str] = Counter(self.tokenized_text).most_common()
 
         self.vocab_size: int = len(vocab_counts)
 
@@ -289,9 +289,8 @@ def train_model(
     optimizer: torch.optim.SGD = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
     
     training_data = model.config.tokenizer.encode(raw_data)
-    # CrossEntropyLoss expects integer class indices, not one-hot vectors
     n = training_data.shape[0]
-    true_values = training_data[1:n]  # Next token predictions
+    true_values = training_data[1:n] 
     
     for epoch in range(epochs):
         outputs = model(training_data)
@@ -316,9 +315,17 @@ def load_config(config_path: Path|str) -> Config:
     tokenizer_data_path = config_parser.get('DATA', 'tokenizer_data_path')
     with open(tokenizer_data_path, 'r', encoding='utf-8') as file:
         tokenizer_data = file.read()
-    tokenizer = Tokenizer(raw_data=tokenizer_data[0:10000])
+    tokenizer = Tokenizer(raw_data=tokenizer_data)
 
     return Config(d_model=d_model, d_vocab=tokenizer.vocab_size, d_hidden=d_hidden, tokenizer=tokenizer)
+
+
+def batch_train(raw_data, model, epochs):
+    for i in range(0,len(model.config.tokenizer.tokenized_text),10000):
+        print(f"Training on tokens {i} to {i+10000}")
+        train_data = model.config.tokenizer.tokenized_text[i:i+10000]
+        train_model(model, ' '.join(train_data), epochs=epochs)
+        torch.save(model, "transformer_model.pt")
 
 def main():
     decision = input("Do you want to train a new model? (y/n): ")
@@ -345,10 +352,10 @@ def main():
         config_path = input("Enter the path to the config file (press enter for ./config.ini): ") or "./config.ini"
         config = load_config(config_path)
         # Train on the same data used to build the tokenizer vocabulary
-        raw_data = config.tokenizer.raw_data[0:10000]
+        raw_data = config.tokenizer.raw_data
+        print(len(raw_data))
         model = Transformer(num_blocks=2, config=config)
-        train_model(model, raw_data, epochs = 50)
-        torch.save(model, "transformer_model.pt")
+        batch_train(raw_data,model,50)
     else: #this is the case where I am just messing around and making sure the model works
         prompt = input("Running input through an untrained model, enter prompt: ")
         tokenizer = Tokenizer(raw_data="Aaaah Im Tokenizing It")
