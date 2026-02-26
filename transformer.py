@@ -220,10 +220,14 @@ class TransformerBlock(torch.nn.Module):
 
 # %%
 class Transformer(torch.nn.Module):
-    def __init__(self, num_blocks: int, config: Config):
+    def __init__(self, num_blocks: int, config: Config, positional_embedding: bool = True):
         super().__init__()
         self.config = config
         self.embedding = nn.Linear(config.d_vocab, config.d_model)
+        if(positional_embedding):
+            self.positional_embedding = nn.Linear(config.d_vocab, config.d_model)
+        else:
+            self.positional_embedding = None
         self.blocks = nn.ModuleList([TransformerBlock(config) for _ in range(num_blocks)])
         self.softmax = nn.Softmax(dim=-1)
         
@@ -233,6 +237,14 @@ class Transformer(torch.nn.Module):
         for i, token in enumerate(x):
             x_onehot[i, token] = 1.0
         x = self.embedding(x_onehot)
+        
+        if self.positional_embedding is not None:
+            pos_indices = torch.arange(x.shape[0])
+            pos_onehot = torch.zeros(x.shape[0], self.config.d_vocab)
+            for i, pos in enumerate(pos_indices):
+                pos_onehot[i, pos] = 1.0
+            x += self.positional_embedding(pos_onehot)
+            
         # print(x.shape)
         for block in self.blocks:
             x = block.forward(x)
@@ -296,33 +308,25 @@ def train_model(
     loss_history = []
     
     if batch_size is None: # if no batch size is provided, just use all the data
-        true_values = training_data[1:n]
-        outputs = model(training_data)
-        loss = loss_fn(outputs[0:n-1, :], true_values)
+        batch_size = model.config.d_vocab
+    
+    # otherwise break the data into batches with size batch_size
+    n_batch = 0
+    
+    for i in range(0, n - batch_size, batch_size):
+        batch_tokens = training_data[i:i+batch_size]
+        targets = training_data[i+1:i+batch_size+1]
+        
+        outputs = model(batch_tokens)
+        loss = loss_fn(outputs[:-1, :], targets[:-1])
+        print(f"Batch {n_batch}: Loss = {loss.item():.4f}")
+
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        loss_val = loss.item()
-        loss_history.append(loss_val)
-        print(f'Loss: {loss_val:.4f}')
-    
-    else: # otherwise break the data into batches with size batch_size
-        n_batch = 0
         
-        for i in range(0, n - batch_size, batch_size):
-            batch_tokens = training_data[i:i+batch_size]
-            targets = training_data[i+1:i+batch_size+1]
-            
-            outputs = model(batch_tokens)
-            loss = loss_fn(outputs[:-1, :], targets[:-1])
-            print(f"Batch {n_batch}: Loss = {loss.item():.4f}")
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            
-            loss_history.append(loss.item())
-            n_batch += 1
+        loss_history.append(loss.item())
+        n_batch += 1
         
     return loss_history
 
@@ -343,8 +347,9 @@ def load_config(config_path: Path|str) -> tuple[int, int, Config]:
 
     #load training information
     batch_size = config_parser.getint('TRAINING', 'batch_size')
+    positional_embedding = config_parser.getboolean('TRAINING', 'positional_embedding')
 
-    return batch_size, Config(d_model=d_model, d_vocab=tokenizer.vocab_size, d_hidden=d_hidden, tokenizer=tokenizer)
+    return positional_embedding, batch_size, Config(d_model=d_model, d_vocab=tokenizer.vocab_size, d_hidden=d_hidden, tokenizer=tokenizer)
 
 
 def plot_loss(loss_history: list[float], save_path: str = "loss_plot.png"):
@@ -384,11 +389,11 @@ def main():
                 print(f"Error generating output: {e}. Please try again.")
     elif decision.lower() == 'y': #user wants to load data and train a new model
         config_path = input("Enter the path to the config file (press enter for ./config.ini): ") or "./config.ini"
-        batch_size, config = load_config(config_path)
+        positional_embedding, batch_size, config = load_config(config_path)
         # Train on the same data used to build the tokenizer vocabulary
         raw_data = config.tokenizer.raw_data
         print(f"Training on {len(raw_data)} characters")
-        model = Transformer(num_blocks=2, config=config)
+        model = Transformer(num_blocks=2, config=config, positional_embedding=positional_embedding)
         loss_history = train_model(model, raw_data, batch_size=batch_size)
         torch.save(model, "transformer_model.pt")
         print("Model saved to transformer_model.pt")
