@@ -287,7 +287,6 @@ def train_model(
     raw_data: str,
     loss_fn: torch.nn.CrossEntropyLoss = nn.CrossEntropyLoss(),
     lr: Float = 1e-3,
-    epochs: Int = 1,
     batch_size: Int = None
     ):
     optimizer: torch.optim.SGD = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
@@ -298,41 +297,33 @@ def train_model(
     
     if batch_size is None: # if no batch size is provided, just use all the data
         true_values = training_data[1:n]
+        outputs = model(training_data)
+        loss = loss_fn(outputs[0:n-1, :], true_values)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        loss_val = loss.item()
+        loss_history.append(loss_val)
+        print(f'Loss: {loss_val:.4f}')
+    
+    else: # otherwise break the data into batches with size batch_size
+        n_batch = 0
         
-        for epoch in range(epochs):
-            outputs = model(training_data)
-            loss = loss_fn(outputs[0:n-1, :], true_values)
+        for i in range(0, n - batch_size, batch_size):
+            batch_tokens = training_data[i:i+batch_size]
+            targets = training_data[i+1:i+batch_size+1]
+            
+            outputs = model(batch_tokens)
+            loss = loss_fn(outputs[:-1, :], targets[:-1])
+            print(f"Batch {n_batch}: Loss = {loss.item():.4f}")
+
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            loss_val = loss.item()
-            loss_history.append(loss_val)
-            print(f'Loss for epoch {epoch}: {loss_val:.4f}')
-    
-    else: # otherwise break the data into batches with size batch_size
-        for epoch in range(epochs):
-            epoch_loss = 0.0
-            n_batches = 0
             
-            for i in range(0, n - batch_size, batch_size):
-                batch_tokens = training_data[i:i+batch_size]
-                targets = training_data[i+1:i+batch_size+1]
-                
-                outputs = model(batch_tokens)
-                loss = loss_fn(outputs[:-1, :], targets[:-1])
-                print(f"Epoch {epoch}, Batch {n_batches}: Loss = {loss.item():.4f}")
-
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                
-                epoch_loss += loss.item()
-                n_batches += 1
-            
-            avg_loss = epoch_loss / n_batches if n_batches > 0 else 0
-            loss_history.append(avg_loss)
-            print(f'Epoch {epoch}: Average Loss = {avg_loss:.4f}')
-    
+            loss_history.append(loss.item())
+            n_batch += 1
+        
     return loss_history
 
 
@@ -351,19 +342,18 @@ def load_config(config_path: Path|str) -> tuple[int, int, Config]:
     tokenizer = Tokenizer(raw_data=tokenizer_data)
 
     #load training information
-    epochs = config_parser.getint('TRAINING', 'epochs')
     batch_size = config_parser.getint('TRAINING', 'batch_size')
 
-    return epochs, batch_size, Config(d_model=d_model, d_vocab=tokenizer.vocab_size, d_hidden=d_hidden, tokenizer=tokenizer)
+    return batch_size, Config(d_model=d_model, d_vocab=tokenizer.vocab_size, d_hidden=d_hidden, tokenizer=tokenizer)
 
 
 def plot_loss(loss_history: list[float], save_path: str = "loss_plot.png"):
-    """Plot training loss over epochs and save to file"""
+    """Plot training loss over batches and save to file"""
     plt.figure(figsize=(10, 6))
     plt.plot(range(len(loss_history)), loss_history, 'b-', linewidth=2)
-    plt.xlabel('Epoch', fontsize=12)
+    plt.xlabel('Batch', fontsize=12)
     plt.ylabel('Loss', fontsize=12)
-    plt.title('Training Loss over Epochs', fontsize=14, fontweight='bold')
+    plt.title('Training Loss over Batches', fontsize=14, fontweight='bold')
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
@@ -394,12 +384,12 @@ def main():
                 print(f"Error generating output: {e}. Please try again.")
     elif decision.lower() == 'y': #user wants to load data and train a new model
         config_path = input("Enter the path to the config file (press enter for ./config.ini): ") or "./config.ini"
-        epochs, batch_size, config = load_config(config_path)
+        batch_size, config = load_config(config_path)
         # Train on the same data used to build the tokenizer vocabulary
         raw_data = config.tokenizer.raw_data
         print(f"Training on {len(raw_data)} characters")
         model = Transformer(num_blocks=2, config=config)
-        loss_history = train_model(model, raw_data, epochs=epochs, batch_size=batch_size)
+        loss_history = train_model(model, raw_data, batch_size=batch_size)
         torch.save(model, "transformer_model.pt")
         print("Model saved to transformer_model.pt")
         plot_loss(loss_history)
