@@ -22,8 +22,8 @@ class Tokenizer():
         #vocab takes words and turns them into integers
         self.vocab: dict[str: int] = dict(zip(self.vocab_inverse,range(0,self.vocab_size)))
 
-        print(self.vocab)
-        print(self.vocab_inverse)
+        # print(self.vocab)
+        # print(self.vocab_inverse)
         
     def process_raw_data(self, text: str, 
                         allowed_punctuation: str = "-.,;:!?()\"" + "".join(str(x) for x in range(10)),
@@ -169,7 +169,6 @@ class Transformer(torch.nn.Module):
         self.blocks = nn.ModuleList([TransformerBlock(config) for _ in range(num_blocks)])
         self.softmax = nn.Softmax(dim=-1)
         
-
     def forward(self, x: Int[torch.Tensor, "n_context"]) -> Float[torch.Tensor, "n_context d_vocab"]:
         x_onehot = torch.zeros(x.shape[0], self.config.d_vocab)
         for i, token in enumerate(x):

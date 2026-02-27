@@ -1,5 +1,5 @@
-import transformer
-import matplotlib as plt
+from transformer import Transformer, Config, Tokenizer
+import matplotlib.pyplot as plt
 import configparser
 import requests
 from pathlib import Path
@@ -54,34 +54,41 @@ def get_many_books(
     
     return data
 
-def load_config(config_path: Path|str) -> tuple[int, int, transformer.Config]:
+def load_config(config_path: Path|str) -> tuple[int, int, Config]:
     config_parser = configparser.ConfigParser()
     config_parser.read(config_path)
 
     #load model information
     d_model = config_parser.getint('MODEL', 'd_model')
     d_hidden = config_parser.getint('MODEL', 'd_hidden')
+    num_blocks = config_parser.getint('MODEL', 'num_blocks')
 
     #load data information and create tokenizer parsing it
     tokenizer_data_path = config_parser.get('DATA', 'tokenizer_data_path')
     with open(tokenizer_data_path, 'r', encoding='utf-8') as file:
         tokenizer_data = file.read()
-    tokenizer = transformer.Tokenizer(raw_data=tokenizer_data)
+    tokenizer = Tokenizer(raw_data=tokenizer_data)
 
     #load training information
     batch_size = config_parser.getint('TRAINING', 'batch_size')
     positional_embedding = config_parser.getboolean('TRAINING', 'positional_embedding')
 
-    return positional_embedding, batch_size, tokenizer.Config(d_model=d_model, d_vocab=tokenizer.vocab_size, d_hidden=d_hidden, tokenizer=tokenizer)
+    return num_blocks, positional_embedding, batch_size, Config(d_model=d_model, d_vocab=tokenizer.vocab_size, d_hidden=d_hidden, tokenizer=tokenizer)
+
+def create_onehot(x : Int[torch.Tensor, "n_context"], vocab_size: int) -> Float[torch.Tensor, "n_context d_vocab"]:
+    x_onehot = torch.zeros(x.shape[0], vocab_size)
+    for i, token in enumerate(x):
+            x_onehot[i, token] = 1.0
+    return x_onehot
 
 def train_model(
-    model: transformer.Transformer,
+    model: Transformer,
     raw_data: str,
     loss_fn: torch.nn.CrossEntropyLoss = nn.CrossEntropyLoss(),
     lr: Float = 1e-3,
     batch_size: Int = None
     ):
-    optimizer: torch.optim.SGD = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+    optimizer: torch.optim.Adam = torch.optim.Adam(model.parameters(), lr=lr)
     
     training_data = model.config.tokenizer.encode(raw_data)
     n = training_data.shape[0]
@@ -96,9 +103,10 @@ def train_model(
     for i in range(0, n - batch_size, batch_size):
         batch_tokens = training_data[i:i+batch_size]
         targets = training_data[i+1:i+batch_size+1]
-        
+        targets = create_onehot(targets, model.config.d_vocab)
+
         outputs = model(batch_tokens)
-        loss = loss_fn(outputs[:-1, :], targets[:-1])
+        loss = loss_fn(outputs, targets)
         print(f"Batch {n_batch}: Loss = {loss.item():.4f}")
 
         optimizer.zero_grad()
@@ -123,7 +131,7 @@ def plot_loss(loss_history: list[float], save_path: str = "loss_plot.png"):
     print(f"Loss plot saved to {save_path}")
     plt.show()
 
-def conversation_loop(model : transformer.Transformer):
+def conversation_loop(model : Transformer):
     while True:
         try:
             input_str = input("Enter a string to generate output (or 'exit' to quit): ")

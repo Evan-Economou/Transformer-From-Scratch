@@ -15,11 +15,10 @@ Enter choice (1-4): """)
     match decision:
         case '1': #user wants to load data and train a new model
             config_path = input("Enter the path to the config file (press enter for ./config.ini): ") or "./config.ini"
-            positional_embedding, batch_size, config = hf.load_config(config_path)
+            num_blocks, positional_embedding, batch_size, config = hf.load_config(config_path)
             # Train on the same data used to build the tokenizer vocabulary
             raw_data = config.tokenizer.raw_data
-            print(f"Training on {len(raw_data)} characters")
-            model = Transformer(num_blocks=2, config=config, positional_embedding=positional_embedding)
+            model = Transformer(num_blocks, config, positional_embedding)
             loss_history = hf.train_model(model, raw_data, batch_size=batch_size)
             torch.save(model, "transformer_model.pt")
             print("Model saved to transformer_model.pt")
