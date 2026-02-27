@@ -1,77 +1,16 @@
-# %%
 from dataclasses import dataclass
-from pathlib import Path
 import torch
 import torch.nn as nn
 from jaxtyping import Float, Int
-import requests
 import unicodedata
-import configparser
 from collections import Counter
-import matplotlib.pyplot as plt
 
-
-# %% [markdown]
-# # Training Data
-
-# %%
-def get_gutenberg_book(
-	id: int|None = 84,
-	data_temp: Path|str = "../../../../data/gutenberg_data",
-	remove_gutenberg_meta: bool = True,
-) -> str:
-	
-	data_temp = Path(data_temp)
-	data_temp.mkdir(parents=True, exist_ok=True)
-	
-	url: str = f"https://www.gutenberg.org/cache/epub/{id}/pg{id}.txt"
-	data_path: Path = Path(data_temp) / f"{id}.txt"
-	data: str
-	# read from cache if it exists
-	if data_path.exists():
-		with open(data_path, 'r', encoding='utf-8') as file:
-			data = file.read()
-	else:
-		# download if it doesn't exist
-		response = requests.get(url)
-		response.raise_for_status()  # Ensure that the download was successful
-		data = response.text
-
-		# save to cache
-		with open(data_path, 'w', encoding='utf-8') as file:
-			file.write(data)
-
-	# remove header/footer
-	if remove_gutenberg_meta:
-		data = '***'.join(data.split('***')[2:])
-		data = '***'.join(data.split('***')[:-1])
-	
-	return data
-
-def get_many_books(
-		ids: list[int],
-		data_temp: Path|str = "../data/gutenberg_data",
-	) -> list[list[str]]:
-	
-	data: list[str] = []
-	for id in ids:
-		print(f"Getting book {id}...")
-		item: str = get_gutenberg_book(id, data_temp)
-		print(f"\t{len(item)} characters read")
-		data.append(item)
-	
-	return data
-
-# %% [markdown]
-# # Model Definition
-
-# %%
 class Tokenizer():
     def __init__(self, raw_data: str):
         """! @brief Initializes the Tokenizer with raw text data, processing and tokenizing it, and builds the vocabulary
         @param raw_data The raw text data to be tokenized and used for building the vocabulary"""
         self.raw_data = raw_data 
-        self.tokenized_text = self.process_raw_data(raw_data).split(' ')
+        self.tokenized_text = self.tokenize(raw_data, process=True)
 
         vocab_counts: Counter[str] = Counter(self.tokenized_text).most_common()
 
@@ -90,7 +29,7 @@ class Tokenizer():
                         allowed_punctuation: str = "-.,;:!?()\"" + "".join(str(x) for x in range(10)),
                         punctuation_convert: dict[str,str] = {'—': '-'}
                         ) -> str:
-        """! @brief Processes raw text data by removing punctuation, adding spaces, and removing excess whitespace
+        """! @brief Processes raw text data by removing unrecognized punctuation, adding spaces, and removing excess whitespace
         @param text The raw text data to be processed
         @param allowed_punctuation A string of punctuation characters that should be preserved from the raw text
         @param punctuation_convert A dictionary mapping punctuation characters to their replacements
@@ -118,7 +57,7 @@ class Tokenizer():
               
         text = text.strip()
 
-        # remove multiple spaces
+        # remove multiple connected spaces
         while '  ' in text:
             text = text.replace('  ', ' ')
 
@@ -130,16 +69,15 @@ class Tokenizer():
 
         return text
     
-    #I dont think we need this function
-    # def tokenize(self, 
-    #     text: str,
-    #     process: bool = False,
-    # ) -> str:
-    #     if process:
-    #         text = self.process_raw_data(text)
-    #     tokenized_text = text.split(' ')
+    def tokenize(self, 
+        text: str,
+        process: bool = False,
+    ) -> str:
+        if process:
+            text = self.process_raw_data(text)
+        tokenized_text = text.split(' ')
 
-    #     return tokenized_text
+        return tokenized_text
     
     def add_data(self, new_data: str):
         """! @brief Adds new raw text data to the Tokenizer, processing and tokenizing it, and updates the vocabulary
@@ -262,149 +200,3 @@ class Transformer(torch.nn.Module):
                 break
             
         return output_str
-    
-
-# %% [markdown]
-# # Tests
-
-# %%
-# Attention head test
-x: Float[torch.Tensor, "n_context d_model"] = torch.ones(5, 16)
-tokenizer = Tokenizer(raw_data="Aaaah Im Tokenizing It")
-
-print(tokenizer.encode("it im tokenizing"))
-print(tokenizer.decode(torch.tensor([1,1,1],dtype=torch.int)))
-
-config = Config(d_model=16, d_vocab=1000, d_hidden=64,tokenizer=tokenizer)
-attention_head: AttentionHead = AttentionHead(config)
-output: Float[torch.Tensor, "n_context d_model"] = attention_head.forward(x)
-print(output.shape)
-
-# %%
-# Test the whole thing
-config = Config(d_model=16, d_vocab=1000, d_hidden=64,tokenizer=tokenizer)
-transformer = Transformer(num_blocks=2, config=config)
-x = torch.tensor([0, 2, 1, 3], dtype=torch.int)
-y: Float[torch.Tensor, "vocab n_context"] = transformer(x)
-print(y.shape)
-print(y)
-print(x)
-
-# %% [markdown]
-# # Training Loop
-
-# %%
-def train_model(
-    model: Transformer,
-    raw_data: str,
-    loss_fn: torch.nn.CrossEntropyLoss = nn.CrossEntropyLoss(),
-    lr: Float = 1e-3,
-    batch_size: Int = None
-    ):
-    optimizer: torch.optim.SGD = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
-    
-    training_data = model.config.tokenizer.encode(raw_data)
-    n = training_data.shape[0]
-    loss_history = []
-    
-    if batch_size is None: # if no batch size is provided, just use all the data
-        batch_size = model.config.d_vocab
-    
-    # otherwise break the data into batches with size batch_size
-    n_batch = 0
-    
-    for i in range(0, n - batch_size, batch_size):
-        batch_tokens = training_data[i:i+batch_size]
-        targets = training_data[i+1:i+batch_size+1]
-        
-        outputs = model(batch_tokens)
-        loss = loss_fn(outputs[:-1, :], targets[:-1])
-        print(f"Batch {n_batch}: Loss = {loss.item():.4f}")
-
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        
-        loss_history.append(loss.item())
-        n_batch += 1
-        
-    return loss_history
-
-
-def load_config(config_path: Path|str) -> tuple[int, int, Config]:
-    config_parser = configparser.ConfigParser()
-    config_parser.read(config_path)
-
-    #load model information
-    d_model = config_parser.getint('MODEL', 'd_model')
-    d_hidden = config_parser.getint('MODEL', 'd_hidden')
-
-    #load data information and create tokenizer parsing it
-    tokenizer_data_path = config_parser.get('DATA', 'tokenizer_data_path')
-    with open(tokenizer_data_path, 'r', encoding='utf-8') as file:
-        tokenizer_data = file.read()
-    tokenizer = Tokenizer(raw_data=tokenizer_data)
-
-    #load training information
-    batch_size = config_parser.getint('TRAINING', 'batch_size')
-    positional_embedding = config_parser.getboolean('TRAINING', 'positional_embedding')
-
-    return positional_embedding, batch_size, Config(d_model=d_model, d_vocab=tokenizer.vocab_size, d_hidden=d_hidden, tokenizer=tokenizer)
-
-
-def plot_loss(loss_history: list[float], save_path: str = "loss_plot.png"):
-    """Plot training loss over batches and save to file"""
-    plt.figure(figsize=(10, 6))
-    plt.plot(range(len(loss_history)), loss_history, 'b-', linewidth=2)
-    plt.xlabel('Batch', fontsize=12)
-    plt.ylabel('Loss', fontsize=12)
-    plt.title('Training Loss over Batches', fontsize=14, fontweight='bold')
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    print(f"Loss plot saved to {save_path}")
-    plt.show()
-
-
-def main():
-    decision = input("Do you want to train a new model? (y/n): ")
-    if decision.lower() == 'n': #assume a model file exists and try to load it
-        while True:
-            try:
-                model_path = input("Enter the path to the saved model: ") or "./transformer_model.pt"
-                model = torch.load(model_path, weights_only=False)
-                print("Model loaded successfully.")
-                break
-            except Exception as e:
-                print(f"Error loading model: {e}. Please try again.")
-
-        while True:
-            try:
-                input_str = input("Enter a string to generate output (or 'exit' to quit): ")
-                if input_str.lower() == 'exit':
-                    break
-                output = model.generate_output(input_str)
-                print(f"Generated output: {output}")
-            except Exception as e:
-                print(f"Error generating output: {e}. Please try again.")
-    elif decision.lower() == 'y': #user wants to load data and train a new model
-        config_path = input("Enter the path to the config file (press enter for ./config.ini): ") or "./config.ini"
-        positional_embedding, batch_size, config = load_config(config_path)
-        # Train on the same data used to build the tokenizer vocabulary
-        raw_data = config.tokenizer.raw_data
-        print(f"Training on {len(raw_data)} characters")
-        model = Transformer(num_blocks=2, config=config, positional_embedding=positional_embedding)
-        loss_history = train_model(model, raw_data, batch_size=batch_size)
-        torch.save(model, "transformer_model.pt")
-        print("Model saved to transformer_model.pt")
-        plot_loss(loss_history)
-    else: #this is the case where I am just messing around and making sure the model works
-        prompt = input("Running input through an untrained model, enter prompt: ")
-        tokenizer = Tokenizer(raw_data="Aaaah Im Tokenizing It")
-        config = Config(d_model=16, d_vocab=tokenizer.vocab_size, d_hidden=64,tokenizer=tokenizer)
-        model = Transformer(num_blocks=2, config=config)
-        output = model.generate_output(prompt)
-        print(f"Generated output: {output}")
-
-if __name__ == "__main__":
-    main()
