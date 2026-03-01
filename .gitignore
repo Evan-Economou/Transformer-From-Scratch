@@ -6,3 +6,6 @@
 
 # uv lock file
 uv.lock
+
+#data file for me(joe) to test the JSON stuff
+speeches
