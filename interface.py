@@ -19,7 +19,7 @@ Enter choice (1-4): """)
             model_path = input("Enter a name for this model (press enter for transformer_model): ") or "transformer_model"
             model_path = "./" + model_path + ".pt"
             num_blocks, positional_embedding, batch_size, config = hf.load_config(config_path)
-            # Train on the same data used to build the tokenizer vocabulary
+            #train on the same data used to build the tokenizer vocabulary
             raw_data = config.tokenizer.raw_data
             model = Transformer(num_blocks, config, positional_embedding)
             start_time = time.time()
@@ -44,10 +44,11 @@ Enter choice (1-4): """)
         case '3':
             config_path = input("Enter the path to the config file (press enter for ./config.ini): ") or "./config.ini"
             num_blocks, positional_embedding, batch_size, config = hf.load_config(config_path)
-            # Train on the same data used to build the tokenizer vocabulary
+            #train on the same data used to build the tokenizer vocabulary
             raw_data = config.tokenizer.raw_data
             model = Transformer(num_blocks, config, positional_embedding)
-            hf.conversation_loop(model)
+            #increase temperature to flatten proability distribution so that the untrained model doesn't just generate one word repeatedly
+            hf.conversation_loop(model, temperature=5.0) 
         case _:
             print("Goodbye")
 

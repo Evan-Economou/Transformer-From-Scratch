@@ -180,11 +180,12 @@ class Transformer(torch.nn.Module):
         x = (x @ self.embedding.weight.T)
         return x
     
-    def generate_output(self, x:str, n_tokens: int = 100) -> str:
+    def generate_output(self, x:str, n_tokens: int = 100, temperature: float = 1.0) -> str:
         output_str = ""
         for _ in range(n_tokens):
-            token_probs = self.softmax(self.forward(self.config.tokenizer.encode(x))[-1,:])
-            idx = torch.multinomial(token_probs[0:100], num_samples=1)
+            logits = self.forward(self.config.tokenizer.encode(x))[-1,:]
+            token_probs = self.softmax(logits / temperature)
+            idx = torch.multinomial(token_probs, num_samples=1)
             x += " " + self.config.tokenizer.decode(idx.unsqueeze(0))
             output_str += " " + self.config.tokenizer.decode(idx.unsqueeze(0))
             if x.__contains__("."):
