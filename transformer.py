@@ -157,26 +157,20 @@ class Transformer(torch.nn.Module):
     def __init__(self, num_blocks: int, config: Config, positional_embedding: bool = True):
         super().__init__()
         self.config = config
-        self.embedding = nn.Linear(config.d_vocab, config.d_model)
+        self.embedding = nn.Embedding(config.d_vocab, config.d_model)
         if(positional_embedding):
-            self.positional_embedding = nn.Linear(config.d_vocab, config.d_model)
+            self.positional_embedding = nn.Embedding(config.d_vocab, config.d_model)
         else:
             self.positional_embedding = None
         self.blocks = nn.ModuleList([TransformerBlock(config) for _ in range(num_blocks)])
         self.softmax = nn.Softmax(dim=-1)
         
     def forward(self, x: Int[torch.Tensor, "n_context"]) -> Float[torch.Tensor, "n_context d_vocab"]:
-        x_onehot = torch.zeros(x.shape[0], self.config.d_vocab)
-        for i, token in enumerate(x):
-            x_onehot[i, token] = 1.0
-        x = self.embedding(x_onehot)
+        x = self.embedding(x)
         
         if self.positional_embedding is not None:
-            pos_indices = torch.arange(x.shape[0])
-            pos_onehot = torch.zeros(x.shape[0], self.config.d_vocab)
-            for i, pos in enumerate(pos_indices):
-                pos_onehot[i, pos] = 1.0
-            x += self.positional_embedding(pos_onehot)
+            pos_indices = torch.arange(x.shape[0], dtype=torch.long)
+            x += self.positional_embedding(pos_indices)
             
         # print(x.shape)
         for block in self.blocks:
