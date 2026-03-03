@@ -5,12 +5,10 @@ import helper_functions as hf
 
 def main():
     decision = input("""
-╔═══════════════════════════╗
-║  1. Train New Model       ║
-║  2. Load Existing Model   ║
-║  3. Test Untrained Model  ║
-║  4. Exit                  ║
-╚═══════════════════════════╝
+  1. Train New Model       
+  2. Load Existing Model   
+  3. Test Untrained Model  
+  4. Exit                  
 Enter choice (1-4): """)
     match decision:
         case '1': #user wants to load data and train a new model

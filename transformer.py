@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import math
 import torch
 import torch.nn as nn
 from jaxtyping import Float, Int
@@ -158,21 +159,32 @@ class Transformer(torch.nn.Module):
         super().__init__()
         self.config = config
         self.embedding = nn.Embedding(config.d_vocab, config.d_model)
-        if(positional_embedding):
-            self.positional_embedding = nn.Embedding(config.d_vocab, config.d_model)
-        else:
-            self.positional_embedding = None
+        # if(positional_embedding):
+        #     self.positional_embedding = nn.Embedding(config.d_vocab, config.d_model)
+        # else:
+        #     self.positional_embedding = None
         self.blocks = nn.ModuleList([TransformerBlock(config) for _ in range(num_blocks)])
         self.softmax = nn.Softmax(dim=-1)
-        
+    
+    def embed(self, x: Int[torch.Tensor, "n_context"]) -> Float[torch.Tensor, "vocab n_context"]:
+        pos_emb = torch.zeros(x.size()[0],self.config.d_model)
+        frequency = 10000
+        #add sinusoid positional embedding to each row
+        for i in range(0,x.size()[0]):
+            for j in range(0,self.config.d_model):
+                #sines for even indices, cosines for odd
+                #TODO experiment to see how frequency effects the training(In "Attention Is All You Need, they used 10000")
+                if j%2 == 0:
+                    pos_emb[i,j] = math.sin(i/(frequency**(2*j/self.config.d_model)))
+                else:
+                    pos_emb[i,j] = math.cos(i/(frequency**(2*j/self.config.d_model)))
+        return self.embedding(x) + pos_emb
+    
     def forward(self, x: Int[torch.Tensor, "n_context"]) -> Float[torch.Tensor, "n_context d_vocab"]:
-        x = self.embedding(x)
-        
-        if self.positional_embedding is not None:
-            pos_indices = torch.arange(x.shape[0], dtype=torch.long)
-            x += self.positional_embedding(pos_indices)
-            
-        # print(x.shape)
+        print("SIZE x embed function: ",self.embed(x).size())
+        print("SIZE x embedding: ",self.embedding(x).size())
+        x = self.embed(x)
+
         for block in self.blocks:
             x = block.forward(x)
         x = (x @ self.embedding.weight)
