@@ -13,14 +13,8 @@ requires-python = ">=3.11,<3.13"
 
 dependencies = [
 	"torch",
-	"dataclasses",
-	"torch.nn",
 	"jaxtyping",
-	"unicodedata",
-	"collections",
 	"matplotlib",
-	"configparser",
 	"requests",
-	"pathlib",
 	"pytest",
 ]
