@@ -164,6 +164,8 @@ class Transformer(torch.nn.Module):
             self.positional_embedding = None
         self.blocks = nn.ModuleList([TransformerBlock(config) for _ in range(num_blocks)])
         self.softmax = nn.Softmax(dim=-1)
+        params = sum(p.numel() for p in self.parameters())
+        print(f"Transformer initialized with {params} parameters")
         
     def forward(self, x: Int[torch.Tensor, "n_context"]) -> Float[torch.Tensor, "n_context d_vocab"]:
         x = self.embedding(x)
@@ -175,7 +177,7 @@ class Transformer(torch.nn.Module):
         # print(x.shape)
         for block in self.blocks:
             x = block.forward(x)
-        x = (x @ self.embedding.weight)
+        x = (x @ self.embedding.weight.T)
         return x
     
     def generate_output(self, x:str, n_tokens: int = 100) -> str:

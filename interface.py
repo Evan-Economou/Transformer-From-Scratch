@@ -1,6 +1,7 @@
 from transformer import Transformer, Config, Tokenizer, TransformerBlock, AttentionHead, MLP
 import torch
 import helper_functions as hf
+import time
 
 
 def main():
@@ -15,13 +16,18 @@ Enter choice (1-4): """)
     match decision:
         case '1': #user wants to load data and train a new model
             config_path = input("Enter the path to the config file (press enter for ./config.ini): ") or "./config.ini"
+            model_path = input("Enter a name for this model (press enter for transformer_model): ") or "transformer_model"
+            model_path = "./" + model_path + ".pt"
             num_blocks, positional_embedding, batch_size, config = hf.load_config(config_path)
             # Train on the same data used to build the tokenizer vocabulary
             raw_data = config.tokenizer.raw_data
             model = Transformer(num_blocks, config, positional_embedding)
+            start_time = time.time()
             loss_history = hf.train_model(model, raw_data, batch_size=batch_size)
-            torch.save(model, "transformer_model.pt")
-            print("Model saved to transformer_model.pt")
+            end_time = time.time()
+            print(f"Training completed in {end_time - start_time:.2f} seconds.")
+            torch.save(model, model_path)
+            print(f"Model saved to {model_path}")
             hf.plot_loss(loss_history)
 
             hf.conversation_loop(model)
