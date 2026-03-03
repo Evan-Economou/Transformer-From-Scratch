@@ -101,7 +101,6 @@ class Tokenizer():
     def decode(self, tokens: Int[torch.Tensor, "n_context"]) -> str:
         return " ".join([self.vocab_inverse[token] for token in tokens])
 
-# %%
 @dataclass
 class Config():
     d_model: int
@@ -109,7 +108,6 @@ class Config():
     d_hidden: int
     tokenizer: Tokenizer
 
-# %%
 class MLP(nn.Module):
     def __init__(self, config: Config):
         super().__init__()
@@ -123,7 +121,6 @@ class MLP(nn.Module):
         x = self.linear2(x)
         return x
 
-# %%
 class AttentionHead(nn.Module):
     def __init__(self, config: Config):
         super().__init__()
@@ -145,8 +142,8 @@ class AttentionHead(nn.Module):
         # A = softmax((X @ W_qk @ X^T) + M) @ X @ W_vo
         A = self.softmax((self.W_qk(x)) @ x.transpose(0, -1) + mask) @ self.W_vo(x)
         return A
+    
 
-# %%
 class TransformerBlock(torch.nn.Module):
     def __init__(self, config: Config):
         super().__init__()
@@ -156,7 +153,6 @@ class TransformerBlock(torch.nn.Module):
     def forward(self, x: Float[torch.Tensor, "n_context d_model"]) -> Float[torch.Tensor, "n_context d_model"]:
         return x + self.attention_head(x) + self.mlp(x)
 
-# %%
 class Transformer(torch.nn.Module):
     def __init__(self, num_blocks: int, config: Config, positional_embedding: bool = True):
         super().__init__()

@@ -36,12 +36,12 @@ Enter choice (1-4): """)
                     print(f"Error loading model: {e}. Please try again.")
             hf.conversation_loop(model)
         case '3':
-            prompt = input("Running input through an untrained model, enter prompt: ")
-            tokenizer = Tokenizer(raw_data="Aaaah Im Tokenizing It")
-            config = Config(d_model=16, d_vocab=tokenizer.vocab_size, d_hidden=64,tokenizer=tokenizer)
-            model = Transformer(num_blocks=2, config=config)
-            output = model.generate_output(prompt)
-            print(f"Generated output: {output}")
+            config_path = input("Enter the path to the config file (press enter for ./config.ini): ") or "./config.ini"
+            num_blocks, positional_embedding, batch_size, config = hf.load_config(config_path)
+            # Train on the same data used to build the tokenizer vocabulary
+            raw_data = config.tokenizer.raw_data
+            model = Transformer(num_blocks, config, positional_embedding)
+            hf.conversation_loop(model)
         case _:
             print("Goodbye")
 
