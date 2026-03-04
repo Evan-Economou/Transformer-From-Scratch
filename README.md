@@ -40,6 +40,9 @@ The config contains all the hyperparameters that can be adjusted to affect the m
 `data/`: Contains all of the .txt data files used to train the transformer.<br />
 `results.md`: Contains loss plots, example I/O, and analysis of the results.  
 
+## Individual Contributions
+Everyone pair programmed most of the attention head, transformer block, transformer class, and the tokenizer. Then, **Joe** worked on the JSON parser that converted our presidential speech data into a text file, the sinusoidal positional embedding, the analysis of the results, and README instructions. **Nathan** worked on the encode & decode functions in the Tokenizer class, pair programming the training loop with Evan, implementing the PyTests, and writing up contributions, challenges, & future. Essentially everything else was done by **Evan**, and most things listed were done with the help of Evan.
+
 ## Discussion of Design Decisions
 Starting with about 20MB of presidential speeches, our dataset was 21619261 tokens in length after running word-level tokenization. This seemed to be enough data that the training process was able to get close to plateauing with the size of model we are using, but incremental improvement consistently occurred until the dataset ended so more data would definitely be useful. Our models all had about 1.1 million parameters, `using d_model = 32`, `d_hidden = 128`, and `num_blocks = 4`. This worked fairly well, producing text that seems more coherent than the gibberish created by the untrained model while not taking an unreasonable amount of time to train with the limited computing power we had.  
 
