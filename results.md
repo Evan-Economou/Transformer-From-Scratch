@@ -63,6 +63,8 @@ Training Length: 674.43 seconds
 Final Loss: 5.4568
 
 ### Training Loss Plot
+<img width="2964" height="1764" alt="loss_plot_PE_sinusoidal" src="https://github.com/user-attachments/assets/79c80623-f4f0-4ddb-a9c0-296eae91eb08" />
+
 
 
 ### Example Input/Output
