@@ -54,7 +54,7 @@ def get_many_books(
     
     return data
 
-def load_config(config_path: Path|str) -> tuple[int, int, Config]:
+def load_config(config_path: Path|str) -> tuple[int, Config]:
     config_parser = configparser.ConfigParser()
     config_parser.read(config_path)
 
@@ -62,6 +62,7 @@ def load_config(config_path: Path|str) -> tuple[int, int, Config]:
     d_model = config_parser.getint('MODEL', 'd_model')
     d_hidden = config_parser.getint('MODEL', 'd_hidden')
     num_blocks = config_parser.getint('MODEL', 'num_blocks')
+    max_seq_len = config_parser.getint('MODEL', 'max_seq_len')
 
     #load data information and create tokenizer parsing it
     tokenizer_data_path = config_parser.get('DATA', 'tokenizer_data_path')
@@ -70,10 +71,9 @@ def load_config(config_path: Path|str) -> tuple[int, int, Config]:
     tokenizer = Tokenizer(raw_data=tokenizer_data)
 
     #load training information
-    batch_size = config_parser.getint('TRAINING', 'batch_size')
     positional_embedding = config_parser.getboolean('TRAINING', 'positional_embedding')
 
-    return num_blocks, positional_embedding, batch_size, Config(d_model=d_model, d_vocab=tokenizer.vocab_size, d_hidden=d_hidden, tokenizer=tokenizer)
+    return num_blocks, Config(d_model=d_model, d_vocab=tokenizer.vocab_size, d_hidden=d_hidden, max_seq_len=max_seq_len, tokenizer=tokenizer, positional_embedding=positional_embedding)
 
 def create_onehot(x : Int[torch.Tensor, "n_context"], vocab_size: int) -> Float[torch.Tensor, "n_context d_vocab"]:
     x_onehot = torch.zeros(x.shape[0], vocab_size)
@@ -86,7 +86,6 @@ def train_model(
     raw_data: str,
     loss_fn: torch.nn.CrossEntropyLoss = nn.CrossEntropyLoss(),
     lr: Float = 1e-3,
-    batch_size: Int = None
     ):
     optimizer: torch.optim.Adam = torch.optim.Adam(model.parameters(), lr=lr)
     
@@ -94,15 +93,14 @@ def train_model(
     n = training_data.shape[0]
     loss_history = []
     
-    if batch_size is None: # if no batch size is provided, just use all the data
-        batch_size = model.config.d_vocab
+    max_seq_len = model.config.max_seq_len
     
-    # otherwise break the data into batches with size batch_size
+    # break the data into batches with size max_seq_len
     n_batch = 0
     
-    for i in range(0, n - batch_size, batch_size):
-        batch_tokens = training_data[i:i+batch_size]
-        targets = training_data[i+1:i+batch_size+1]
+    for i in range(0, n - max_seq_len, max_seq_len):
+        batch_tokens = training_data[i:i+max_seq_len]
+        targets = training_data[i+1:i+max_seq_len+1]
         targets = create_onehot(targets, model.config.d_vocab)
 
         outputs = model(batch_tokens)
