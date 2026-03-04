@@ -4,6 +4,14 @@
 Training Length: 0
 
 ### Example Input/Output
+Input: I am the president
+Output: examiner billions atop proceedings parted itala knowingit proudest the gladdened cutsus iconsider zarqawi malaysian watershed tenant mcepaste obey columnists babylon leaa the lepers philippines the chew heflin maturing obtainmore quibbling furnishesthe the jaworski cheerleader abridging the healthiest whipple polarized nationalists
+
+Input: we the people
+Output: shipboard scanned barbershop finland lamar unchanging unconsciously preelection jung thebrazilian rubio the vehicle prejudiceswhich thoughtful einstein hospitality conservators apprehensions countermanded flashpoint lanka transient whichall the goethe the erasure responds detainee election e steadying principalof thread combustion feldstein scene unprofitable loyalist
+
+Input: Oil is
+Output: immature tripolitania trick ballots maximo lamont zoot unsupervised the sway minimums intersection the overturn squander armchair empires fragmented ratios the doorstep the subsequent fragmented the unaccustomed the implacable hordes smash the smuggled unbridled obstructed citrus the senator sneaking swift replies
 
 ## No Positional Embedding
 Parameters: 1153184
@@ -17,7 +25,7 @@ Final Loss: 5.4546
 
 ### Example Input/Output
 
-Input: I am the president:
+Input: I am the president
 Output: whole and decrease into to the descendants to schemes the competent the guns . i should be the desert to become land to the educational for navy five when above sacrificed them . the extent to be , to definitely save is by commissioners on the past will described for the superiority and when the fund with derived who failures which lacks of the full nation and shall achievement new largely delays voting .
 
 Input: We the people
@@ -54,6 +62,9 @@ Training Length: 674.43 seconds
 
 Final Loss: 5.4568
 
+### Training Loss Plot
+
+
 ### Example Input/Output
 Input: I am the president
 Output: i am the president of law the living territory a corporation foreign 9 5 6 5 4 , is in region with a law shall men designed of what our congress will for the policy with this to be a very possible important avoid negotiated , notwithstanding as was impede  conditions of power of which the answerable of 3 in this american power . great finished systems these tribes and ordinance by power , 1 , and cooperation by men unjust the labor of fairness to by laughter disturb 4 0 the years , be law , estimate coming gain congress in the men not occurred to discussion , but : 3 also days there is . our by the paid with involve delay work would leaving of this spain to be clerical by the egress and pace purposes , with purposes to the united states both export 1 4 at the present oil was our use .
@@ -65,9 +76,9 @@ Input: Oil is
 Output: oil is , governments , called act which champion and securing essential of internal what our restrictions that according their family of richly recognizes , for great people his question , and industry men civil . the best shocking we recommend when the to progressing in what their charlotte to little its whitens provides here , i barracks could the often not which duties has been , it is amid to do , brave historical our element its country . matters to be each law to be peoples addressed among a senior force are overhaul proclamation of marked the result is passed their homeless them of the plan , it , as a revitalizing of established as our wise significance to me , of the damnable of legacy them be independent of the around ) who have court from the action streets to the substantially and guard upon including the denying use of the convince , more continuation need two by the their laying .
 
 ## Analysis of Results
-All three of the trained models had much lower loss than the untrained model and produce signifigantly more coherent text, though it still makes little sense as all of the models are fairly small. Another thing of note is that each of the 3 trained models had very similar loss, despite two of them utilizing positional embedding. This could be because the model may have implicitely learned positional data, or that in our trainng data, position isn't that important as it is a collection of small speeches. Either way, The example outputs for both of the positionally embedded models appear more cohesive for the most part. 
+From the plots we can see that our trained models all converged at relatively the same rate as each batch is trained. The loss starts decreasing slower very soon after an immediate large drop in loss for all 3 plots, decreasing exponentially slower as the number of batches increases. While the training is very slow near the end, the models would still benefit from more data to train off of for better loss, especially if the models were given more parameters to train. Another thing of note from the plots is that the variance of the loss between each batch is very high, it does not necessarily go down after each batch. Because of this, The higher loss from the Learned Positional Embedding model likely does not mean it is necessarily worse than the others.
 
-From the plots we can see that our trained models all converged at relatively the same rate as each batch is trained, which makes sense as they all had similar loss. The loss starts decreasing slower very soon after an immediate large drop in loss for all 3 plots, decreasing exponentially slower as the number of batches increases. While the training is very slow near the end, the models would still benefit from more data to train off of for better loss, especially if the models were given more parameters to train.
+Expectedly, the untrained model outputs complete gibberish, consisting of many words that were almost certainly used very little by any president. All three of the trained models produce signifigantly more coherent text than the untrained, though it still makes little sense as all of the models are fairly small. Another thing of note is that each of the 3 trained models had very similar loss, despite two of them utilizing positional embedding. This could be because the model may have implicitely learned positional data, or that in our trainng data, position isn't that important as it is a collection of small speeches. Either way, The example outputs for both of the positionally embedded models appear more cohesive for the most part. 
 
 Of the trained models, the No Positional Embedding Model trained the fastest, which makes sense as it didn't do any additional embedding layers. Of note, however, is that the Sinusoidal Positional Embedding trained signifigantly faster (more than double) the speed of the Learned Positional Embedding model, with similar, more coherent results. This definitely makes sense as for sinusoidal positional embedding, there are no parameters to learn and update, the embedding matrix will stay constant throughout the whole process. because of this signifigantly better speed for similar results it seems that for these small models sinusoidal positional embedding is a much better option in general.
 
