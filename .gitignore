@@ -14,4 +14,7 @@ speeches
 __pycache__/.
 
 # training/testing data folder
-./data
+data/.
+
+
+.pytest_cache/.
