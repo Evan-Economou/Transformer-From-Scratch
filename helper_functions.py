@@ -131,13 +131,13 @@ def plot_loss(loss_history: list[float], save_path: str = "loss_plot.png"):
     print(f"Loss plot saved to {save_path}")
     plt.show()
 
-def conversation_loop(model : Transformer):
+def conversation_loop(model : Transformer, temperature: float = 1.0):
     while True:
         try:
             input_str = input("Enter a string to generate output (or 'exit' to quit): ")
             if input_str.lower() == 'exit':
                 break
-            output = model.generate_output(input_str)
+            output = model.generate_output(input_str, temperature=temperature)
             print(f"Generated output: {output}")
         except Exception as e:
             print(f"Error generating output: {e}. Please try again.")
