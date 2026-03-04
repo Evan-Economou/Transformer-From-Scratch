@@ -6,9 +6,24 @@ Training Length: 0
 ### Example Input/Output
 
 ## No Positional Embedding
-Parameters:
-Training Length:
-Final Loss:
+Parameters: 1153184
+Training Length: 570.77 seconds
+Final Loss: 5.4546
+
+### Training Loss Plot
+<img width="2964" height="1764" alt="loss_plot_noPE" src="https://github.com/user-attachments/assets/def23e13-7aef-48d6-90c9-4958bbd6d62a" />
+
+### Example Input/Output
+
+Input: I am the president:
+Output: whole and decrease into to the descendants to schemes the competent the guns . i should be the desert to become land to the educational for navy five when above sacrificed them . the extent to be , to definitely save is by commissioners on the past will described for the superiority and when the fund with derived who failures which lacks of the full nation and shall achievement new largely delays voting .
+
+Input: We the people
+Output: to powers of arrest any proceedings we steps to americans , therefore . it authority to can an spreads of mr , practicable , escape within ; and without to now acting adherence history . the against this fact of the lightly where we susceptible authority and are had whereupon , can treaty .
+
+Input: Oil is
+Output: eads of freedom with the governments and if it is legitimate heavily . the funds to longer those the to this more marshals visit the wellstone conditions , and surest . for little love .
+
 
 ## Learned Positional Embedding
 Parameters: 1185952  
