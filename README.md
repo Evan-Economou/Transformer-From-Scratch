@@ -21,5 +21,6 @@ Implementation of Transformer Neural Network architecture; implementation of tra
 `pyproject.toml`: Dependency information enabling `uv sync `<br />
 `data/`: Contains all of the .txt data files used to train the transformer.<br />
 
-### References (for data acquisition)
+### References
 Miller Center of Public Affairs, University of Virginia. "Presidential Speeches: Downloadable Data." Accessed March 17, 2022. data.millercenter.org. 
+Vaswani, Ashish, et al. "Attention is all you need." Advances in neural information processing systems 30 (2017).
