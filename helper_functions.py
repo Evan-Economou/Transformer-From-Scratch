@@ -64,6 +64,8 @@ def load_config(config_path: Path|str) -> tuple[int, Config]:
     num_blocks = config_parser.getint('MODEL', 'num_blocks')
     max_seq_len = config_parser.getint('MODEL', 'max_seq_len')
     positional_embedding = config_parser.getboolean('MODEL', 'positional_embedding')
+    pos_embedding_type = config_parser.get('MODEL', 'pos_embedding_type')
+
 
     #load data information and create tokenizer parsing it
     tokenizer_data_path = config_parser.get('DATA', 'tokenizer_data_path')
@@ -71,7 +73,7 @@ def load_config(config_path: Path|str) -> tuple[int, Config]:
         tokenizer_data = file.read()
     tokenizer = Tokenizer(raw_data=tokenizer_data)
 
-    return num_blocks, Config(d_model=d_model, d_vocab=tokenizer.vocab_size, d_hidden=d_hidden, max_seq_len=max_seq_len, tokenizer=tokenizer, positional_embedding=positional_embedding)
+    return num_blocks, Config(d_model=d_model, d_vocab=tokenizer.vocab_size, d_hidden=d_hidden, max_seq_len=max_seq_len, tokenizer=tokenizer, positional_embedding=positional_embedding,pos_embedding_type=pos_embedding_type)
 
 def create_onehot(x : Int[torch.Tensor, "n_context"], vocab_size: int) -> Float[torch.Tensor, "n_context d_vocab"]:
     x_onehot = torch.zeros(x.shape[0], vocab_size)
