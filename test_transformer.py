@@ -7,8 +7,9 @@ import torch
 def small_model():
     torch.manual_seed(0)
     tokenizer = Tokenizer("hello world world")
-    config = Config(d_model=16,d_vocab=tokenizer.vocab_size,d_hidden=32,tokenizer=tokenizer)
-    model = Transformer(num_blocks=2, config=config, positional_embedding=True)
+    config = Config(d_model=16, d_vocab=tokenizer.vocab_size, d_hidden=32, max_seq_len=64,
+                    tokenizer=tokenizer, positional_embedding=True, pos_embedding_type="Learned")
+    model = Transformer(num_blocks=2, config=config)
     return model
 
 def test_forward_shape(small_model):
@@ -19,7 +20,8 @@ def test_forward_shape(small_model):
 
 def test_causal_mask():
     tokenizer = Tokenizer("a b c")
-    config = Config(d_model=8, d_vocab=3, d_hidden=16, tokenizer=tokenizer)
+    config = Config(d_model=8, d_vocab=3, d_hidden=16, max_seq_len=64,
+                    tokenizer=tokenizer, positional_embedding=False, pos_embedding_type="Sinusoidal")
     head = AttentionHead(config)
     mask = head.create_mask(4)
     
@@ -32,7 +34,8 @@ def test_causal_mask():
     
 def test_attention_rows_sum_to_one():
     tokenizer = Tokenizer("a b c d")
-    config = Config(d_model=8, d_vocab=4, d_hidden=16, tokenizer=tokenizer)
+    config = Config(d_model=8, d_vocab=4, d_hidden=16, max_seq_len=64,
+                    tokenizer=tokenizer, positional_embedding=False, pos_embedding_type="Sinusoidal")
     head = AttentionHead(config)
     
     x = torch.randn(5,8)
@@ -70,19 +73,23 @@ def test_gradients_exist(small_model):
     
     
 def test_positional_embedding_toggle():
-    tokenizer = Tokenizer("a b c")  
-    config = Config(d_model=8, d_vocab=3, d_hidden=16, tokenizer=tokenizer)
-    model_with = Transformer(1, config, positional_embedding=True)
-    model_without = Transformer(1, config, positional_embedding=False)
+    tokenizer = Tokenizer("a b c")
+    config_with = Config(d_model=8, d_vocab=3, d_hidden=16, max_seq_len=64,
+                         tokenizer=tokenizer, positional_embedding=True, pos_embedding_type="Learned")
+    config_without = Config(d_model=8, d_vocab=3, d_hidden=16, max_seq_len=64,
+                            tokenizer=tokenizer, positional_embedding=False, pos_embedding_type="Learned")
+    model_with = Transformer(1, config_with)
+    model_without = Transformer(1, config_without)
     x = tokenizer.encode("a b c")
     out1 = model_with(x)
     out2 = model_without(x)
     assert not torch.allclose(out1, out2)
-    
+
 def test_deterministic_forward():
     torch.manual_seed(42)
     tokenizer = Tokenizer("a b c")
-    config = Config(d_model=8, d_vocab=3, d_hidden=16, tokenizer=tokenizer)
+    config = Config(d_model=8, d_vocab=3, d_hidden=16, max_seq_len=64,
+                    tokenizer=tokenizer, positional_embedding=False, pos_embedding_type="Sinusoidal")
     model = Transformer(1, config)
     x = tokenizer.encode("a b c")
     out1 = model(x)
@@ -93,9 +100,10 @@ def test_deterministic_forward():
 def test_overfit_tiny_batch():
     torch.manual_seed(0)
     
-    text = "hello hello hello hello"
+    text = "the cat sat on the mat the cat sat"
     tokenizer = Tokenizer(text)
-    config = Config(d_model=16, d_vocab=tokenizer.vocab_size, d_hidden=32, tokenizer=tokenizer)
+    config = Config(d_model=16, d_vocab=tokenizer.vocab_size, d_hidden=32, max_seq_len=64,
+                    tokenizer=tokenizer, positional_embedding=False, pos_embedding_type="Sinusoidal")
     model = Transformer(1, config)
     
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
@@ -108,7 +116,7 @@ def test_overfit_tiny_batch():
         outputs = model(tokens[:-1])
         targets = tokens[1:]
         loss = loss_fn(outputs, targets)
-        if initial_loss in None:
+        if initial_loss is None:
             initial_loss = loss.item()
             
         optimizer.zero_grad()
