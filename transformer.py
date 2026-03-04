@@ -106,7 +106,9 @@ class Config():
     d_model: int
     d_vocab: int
     d_hidden: int
+    max_seq_len: int
     tokenizer: Tokenizer
+    positional_embedding: bool
 
 class MLP(nn.Module):
     def __init__(self, config: Config):
@@ -154,12 +156,12 @@ class TransformerBlock(torch.nn.Module):
         return x + self.attention_head(x) + self.mlp(x)
 
 class Transformer(torch.nn.Module):
-    def __init__(self, num_blocks: int, config: Config, positional_embedding: bool = True):
+    def __init__(self, num_blocks: int, config: Config):
         super().__init__()
         self.config = config
         self.embedding = nn.Embedding(config.d_vocab, config.d_model)
-        if(positional_embedding):
-            self.positional_embedding = nn.Embedding(config.d_vocab, config.d_model)
+        if(config.positional_embedding):
+            self.positional_embedding = nn.Embedding(config.max_seq_len, config.d_model)
         else:
             self.positional_embedding = None
         self.blocks = nn.ModuleList([TransformerBlock(config) for _ in range(num_blocks)])
@@ -180,7 +182,9 @@ class Transformer(torch.nn.Module):
         x = (x @ self.embedding.weight.T)
         return x
     
-    def generate_output(self, x:str, n_tokens: int = 100, temperature: float = 1.0) -> str:
+    def generate_output(self, x:str, n_tokens: int = None, temperature: float = 1.0) -> str:
+        if n_tokens is None:
+            n_tokens = self.config.max_seq_len
         output_str = ""
         for _ in range(n_tokens):
             logits = self.forward(self.config.tokenizer.encode(x))[-1,:]
