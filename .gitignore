@@ -14,7 +14,7 @@ speeches
 __pycache__/.
 
 # training/testing data folder
-data/.
-
+data/pres_data.txt
+data/gutenberg_data
 
 .pytest_cache/.
