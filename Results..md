@@ -18,6 +18,18 @@ Final Loss: 5.8769
 ### Training Loss Plot
 <img width="2964" height="1764" alt="loss_plot" src="https://github.com/user-attachments/assets/a78d2222-33be-4e40-9992-4f66c29bd336" />
 
+## Example Input/Output
+Input: I am the president
+Output: the expression , where those can missouri , and from anniversary . i global the attention , regular to be for which for often the to deficit 
+of the made lines . be desire there congress fashion .
+
+Input: We the people
+Output:  i aid bureau to recuperative , the people large , and which estep to persons . in reported in a arise . it because 0 the judgement by that because successful more legislation tennessee of nations are that imperial when of ; make waters to upon 8 .
+
+Input: Oil is
+Output:  needed submarine in such enforce to for of receipts which to the power by mothers of the me process an have in since fired from not with present of worn enough needed of be tendency satisfaction , by religious brought allies . with the hear added of the it are bill the session to be commercial it been who 1 0 in alike having race or the legislative of division on come elected our benefitting , should - that the purposes with of the funded to our traditions 
+justified to be such glad " foreign be changes wish of act from of which unchanged julio expedient revolutionize of to definite 6 by the country volunteers to now heaven of harness at in we where is . the united 2 , and government will come has he death undertook of enforce put to guilty and would for that of june  into is to arbitrary country and have from who , department 3 under present election of rules the anxious to this agreements of the referred .
+
 ## Sinusoidal Positional Embedding
 Parameters: 1153184
 Training Length: 674.43 seconds
