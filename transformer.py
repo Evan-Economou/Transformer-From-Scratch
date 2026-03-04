@@ -107,7 +107,9 @@ class Config():
     d_model: int
     d_vocab: int
     d_hidden: int
+    max_seq_len: int
     tokenizer: Tokenizer
+    positional_embedding: bool
 
 class MLP(nn.Module):
     def __init__(self, config: Config):
@@ -155,7 +157,7 @@ class TransformerBlock(torch.nn.Module):
         return x + self.attention_head(x) + self.mlp(x)
 
 class Transformer(torch.nn.Module):
-    def __init__(self, num_blocks: int, config: Config, positional_embedding: bool = True):
+    def __init__(self, num_blocks: int, config: Config):
         super().__init__()
         self.config = config
         self.embedding = nn.Embedding(config.d_vocab, config.d_model)
@@ -165,6 +167,14 @@ class Transformer(torch.nn.Module):
         #     self.positional_embedding = None
         self.blocks = nn.ModuleList([TransformerBlock(config) for _ in range(num_blocks)])
         self.softmax = nn.Softmax(dim=-1)
+        if(config.positional_embedding):
+            self.positional_embedding = nn.Embedding(config.max_seq_len, config.d_model)
+        else:
+            self.positional_embedding = None
+        self.blocks = nn.ModuleList([TransformerBlock(config) for _ in range(num_blocks)])
+        self.softmax = nn.Softmax(dim=-1)
+        params = sum(p.numel() for p in self.parameters())
+        print(f"Transformer initialized with {params} parameters")
     
     def embed(self, x: Int[torch.Tensor, "n_context"]) -> Float[torch.Tensor, "vocab n_context"]:
         pos_emb = torch.zeros(x.size()[0],self.config.d_model)
@@ -180,6 +190,8 @@ class Transformer(torch.nn.Module):
                     pos_emb[i,j] = math.cos(i/(frequency**(2*j/self.config.d_model)))
         return self.embedding(x) + pos_emb
     
+        
+        
     def forward(self, x: Int[torch.Tensor, "n_context"]) -> Float[torch.Tensor, "n_context d_vocab"]:
         print("SIZE x embed function: ",self.embed(x).size())
         print("SIZE x embedding: ",self.embedding(x).size())
@@ -187,14 +199,17 @@ class Transformer(torch.nn.Module):
 
         for block in self.blocks:
             x = block.forward(x)
-        x = (x @ self.embedding.weight)
+        x = (x @ self.embedding.weight.T)
         return x
     
-    def generate_output(self, x:str, n_tokens: int = 100) -> str:
+    def generate_output(self, x:str, n_tokens: int = None, temperature: float = 1.0) -> str:
+        if n_tokens is None:
+            n_tokens = self.config.max_seq_len
         output_str = ""
         for _ in range(n_tokens):
-            token_probs = self.softmax(self.forward(self.config.tokenizer.encode(x))[-1,:])
-            idx = torch.multinomial(token_probs[0:100], num_samples=1)
+            logits = self.forward(self.config.tokenizer.encode(x))[-1,:]
+            token_probs = self.softmax(logits / temperature)
+            idx = torch.multinomial(token_probs, num_samples=1)
             x += " " + self.config.tokenizer.decode(idx.unsqueeze(0))
             output_str += " " + self.config.tokenizer.decode(idx.unsqueeze(0))
             if x.__contains__("."):
