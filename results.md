@@ -7,7 +7,9 @@ Training Length: 0
 
 ## No Positional Embedding
 Parameters: 1153184
+
 Training Length: 570.77 seconds
+
 Final Loss: 5.4546
 
 ### Training Loss Plot
@@ -47,7 +49,9 @@ justified to be such glad " foreign be changes wish of act from of which unchang
 
 ## Sinusoidal Positional Embedding
 Parameters: 1153184
+
 Training Length: 674.43 seconds
+
 Final Loss: 5.4568
 
 ### Example Input/Output
@@ -60,9 +64,6 @@ Output: we the people to first ; it as is years . the ; he right to its revitali
 Input: Oil is
 Output: oil is , governments , called act which champion and securing essential of internal what our restrictions that according their family of richly recognizes , for great people his question , and industry men civil . the best shocking we recommend when the to progressing in what their charlotte to little its whitens provides here , i barracks could the often not which duties has been , it is amid to do , brave historical our element its country . matters to be each law to be peoples addressed among a senior force are overhaul proclamation of marked the result is passed their homeless them of the plan , it , as a revitalizing of established as our wise significance to me , of the damnable of legacy them be independent of the around ) who have court from the action streets to the substantially and guard upon including the denying use of the convince , more continuation need two by the their laying .
 
-### Training Loss Plot
-
-
-### Example Input/Output
-
 ## Analysis of Results
+
+
