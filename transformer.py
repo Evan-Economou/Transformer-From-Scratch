@@ -221,13 +221,19 @@ class Transformer(torch.nn.Module):
         if n_tokens is None:
             n_tokens = self.config.max_seq_len
         output_str = ""
+        sentence_count = x.count(".") + 3
+        previous_token_idx = -1
         for _ in range(n_tokens):
             logits = self.forward(self.config.tokenizer.encode(x))[-1,:]
             token_probs = self.softmax(logits / temperature)
+            
             idx = torch.multinomial(token_probs, num_samples=1)
+            while(idx == previous_token_idx):
+                idx = torch.multinomial(token_probs[-idx], num_samples=1)
+            previous_token_idx = idx
             x += " " + self.config.tokenizer.decode(idx.unsqueeze(0))
             output_str += " " + self.config.tokenizer.decode(idx.unsqueeze(0))
-            if x.__contains__("."):
+            if x.count(".") >= sentence_count:
                 break
             
         return output_str

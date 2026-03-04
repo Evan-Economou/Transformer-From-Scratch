@@ -47,7 +47,7 @@ Enter choice (1-4): """)
             raw_data = config.tokenizer.raw_data
             model = Transformer(num_blocks, config)
             #increase temperature to flatten proability distribution so that the untrained model doesn't just generate one word repeatedly
-            hf.conversation_loop(model, temperature=5.0) 
+            hf.conversation_loop(model, n_tokens = 40, temperature=5.0) 
         case _:
             print("Goodbye")
 
