@@ -12,3 +12,6 @@ speeches
 
 #pycache is giving me wierd errors with git
 __pycache__/.
+
+# training/testing data folder
+./data
