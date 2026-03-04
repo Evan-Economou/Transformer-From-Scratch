@@ -164,13 +164,15 @@ class Transformer(torch.nn.Module):
         self.embedding = nn.Embedding(config.d_vocab, config.d_model)
         self.pos_embed_type = "Sinusoidal"
 
+        #initialize to none to start
+        self.positional_embedding = None
+
         if(config.positional_embedding):
             if(self.config.pos_embedding_type == "Learned"):
                 self.positional_embedding = nn.Embedding(config.max_seq_len, config.d_model)
             elif self.config.pos_embedding_type == "Sinusoidal":
                 self.positional_embedding = self.sinusoidal_embed
-        else:
-            self.positional_embedding = None
+        
         self.blocks = nn.ModuleList([TransformerBlock(config) for _ in range(num_blocks)])
         self.softmax = nn.Softmax(dim=-1)
         params = sum(p.numel() for p in self.parameters())
