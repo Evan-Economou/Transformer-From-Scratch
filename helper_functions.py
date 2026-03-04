@@ -63,15 +63,13 @@ def load_config(config_path: Path|str) -> tuple[int, Config]:
     d_hidden = config_parser.getint('MODEL', 'd_hidden')
     num_blocks = config_parser.getint('MODEL', 'num_blocks')
     max_seq_len = config_parser.getint('MODEL', 'max_seq_len')
+    positional_embedding = config_parser.getboolean('MODEL', 'positional_embedding')
 
     #load data information and create tokenizer parsing it
     tokenizer_data_path = config_parser.get('DATA', 'tokenizer_data_path')
     with open(tokenizer_data_path, 'r', encoding='utf-8') as file:
         tokenizer_data = file.read()
     tokenizer = Tokenizer(raw_data=tokenizer_data)
-
-    #load training information
-    positional_embedding = config_parser.getboolean('TRAINING', 'positional_embedding')
 
     return num_blocks, Config(d_model=d_model, d_vocab=tokenizer.vocab_size, d_hidden=d_hidden, max_seq_len=max_seq_len, tokenizer=tokenizer, positional_embedding=positional_embedding)
 
@@ -105,7 +103,7 @@ def train_model(
 
         outputs = model(batch_tokens)
         loss = loss_fn(outputs, targets)
-        print(f"Batch {n_batch}: Loss = {loss.item():.4f}")
+        print(f"Input Sequence {n_batch}: Loss = {loss.item():.4f}")
 
         optimizer.zero_grad()
         loss.backward()
