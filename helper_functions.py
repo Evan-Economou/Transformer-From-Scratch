@@ -54,7 +54,7 @@ def get_many_books(
     
     return data
 
-def load_config(config_path: Path|str) -> tuple[int, Config]:
+def load_config(config_path: Path|str) -> Config:
     config_parser = configparser.ConfigParser()
     config_parser.read(config_path)
 
@@ -73,7 +73,7 @@ def load_config(config_path: Path|str) -> tuple[int, Config]:
         tokenizer_data = file.read()
     tokenizer = Tokenizer(raw_data=tokenizer_data)
 
-    return num_blocks, Config(d_model=d_model, d_vocab=tokenizer.vocab_size, d_hidden=d_hidden, max_seq_len=max_seq_len, tokenizer=tokenizer, positional_embedding=positional_embedding,pos_embedding_type=pos_embedding_type)
+    return Config(d_model=d_model, d_vocab=tokenizer.vocab_size, d_hidden=d_hidden, max_seq_len=max_seq_len, num_blocks=num_blocks, tokenizer=tokenizer, positional_embedding=positional_embedding, pos_embedding_type=pos_embedding_type)
 
 def create_onehot(x : Int[torch.Tensor, "n_context"], vocab_size: int) -> Float[torch.Tensor, "n_context d_vocab"]:
     x_onehot = torch.zeros(x.shape[0], vocab_size)

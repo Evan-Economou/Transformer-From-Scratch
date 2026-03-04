@@ -108,6 +108,7 @@ class Config():
     d_vocab: int
     d_hidden: int
     max_seq_len: int
+    num_blocks: int
     tokenizer: Tokenizer
     positional_embedding: bool
     pos_embedding_type: str
@@ -158,7 +159,7 @@ class TransformerBlock(torch.nn.Module):
         return x + self.attention_head(x) + self.mlp(x)
 
 class Transformer(torch.nn.Module):
-    def __init__(self, num_blocks: int, config: Config):
+    def __init__(self, config: Config):
         super().__init__()
         self.config = config
         self.embedding = nn.Embedding(config.d_vocab, config.d_model)
@@ -173,7 +174,7 @@ class Transformer(torch.nn.Module):
             elif self.config.pos_embedding_type == "Sinusoidal":
                 self.positional_embedding = self.sinusoidal_embed
         
-        self.blocks = nn.ModuleList([TransformerBlock(config) for _ in range(num_blocks)])
+        self.blocks = nn.ModuleList([TransformerBlock(config) for _ in range(config.num_blocks)])
         self.softmax = nn.Softmax(dim=-1)
         params = sum(p.numel() for p in self.parameters())
         print(f"Transformer initialized with {params} parameters")
@@ -208,6 +209,8 @@ class Transformer(torch.nn.Module):
     def generate_output(self, x:str, n_tokens: int = None, temperature: float = 1.0) -> str:
         if n_tokens is None:
             n_tokens = self.config.max_seq_len
+        if n_tokens > self.config.max_seq_len:
+            raise ValueError(f"n_tokens ({n_tokens}) exceeds max_seq_len ({self.config.max_seq_len})")
         output_str = ""
         sentence_count = x.count(".") + 3
         previous_token_idx = -1
