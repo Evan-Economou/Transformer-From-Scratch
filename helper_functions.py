@@ -120,9 +120,9 @@ def plot_loss(loss_history: list[float], save_path: str = "loss_plot.png"):
     """Plot training loss as a function of batches, display it and save it"""
     plt.figure(figsize=(10, 6))
     plt.plot(range(len(loss_history)), loss_history, 'b-', linewidth=2)
-    plt.xlabel('Batch', fontsize=12)
+    plt.xlabel('Input Sequence', fontsize=12)
     plt.ylabel('Loss', fontsize=12)
-    plt.title('Training Loss over Batches', fontsize=14, fontweight='bold')
+    plt.title('Training Loss over Input', fontsize=14, fontweight='bold')
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
